@@ -1,0 +1,67 @@
+---
+title: "Tugas MPDW Pertemuan 2"
+author: "Fadillah"
+date: "2026-08-30"
+output: html_document
+---
+
+# Inputasi data
+
+```{r}
+data_konsumsilistrik <- read.csv("Data_Konsumsi_Listrik.csv", header = TRUE, sep = ";")
+
+head(data_konsumsilistrik)
+str(data_konsumsilistrik)
+
+```
+
+# Mengambil sample data terbaru
+
+```{r}
+data_konsumsilistrik$Datetime <- as.POSIXct(data_konsumsilistrik$Datetime, format="%d/%m/%Y %H:%M") #untuk mengubah format waktu
+
+data_urut <- data_konsumsilistrik[order(data_konsumsilistrik$Datetime, decreasing = TRUE), ] #mengurutkan data dari yang terbaru
+
+data_sampel <- data_urut[20001:30000, ] #mengambil sample daari data ke 20001-30000
+
+head(data_sampel)
+```
+
+# Mengurutkan kembali data sampel
+
+```{r}
+data_sampel <- data_sampel[order(data_sampel$Datetime), ] #mengurutkan data kembali dari terlama ke terbaru
+
+data_ts <- ts(data_sampel$PJME_MW, frequency = 24) #mengubah ke time series
+```
+
+# Menampilkan grafik
+
+```{r}
+plot(data_ts, main="Grafik Konsumsi Listrik", ylab="Konsumsi Listrik (MW)", xlab="Waktu (Jam)")
+```
+
+# Penerapan pemulusan
+
+```{r}
+library(forecast)
+
+# pemodelan
+model_ses <- ses(data_ts)                    # Single Exponential Smoothing
+model_des <- holt(data_ts)                   # Double Exponential Smoothing (Holt)
+model_hw  <- hw(data_ts, seasonal="additive") # Holt-Winters (Musiman)
+
+# metrik akurasi
+print("--- Akurasi SES ---")
+accuracy(model_ses)
+
+print("--- Akurasi DES ---")
+accuracy(model_des)
+
+print("--- Akurasi Holt-Winters ---")
+accuracy(model_hw)
+```
+
+# Metode terbaik
+
+Berdasarkan perbandingan metrik akurasi dari ketiga metode di atas, Holt-Winters terpilih sebagai metode terbaik untuk data konsumsi listrik ini karena menunjukkan kinerja yang paling optimal. Metode ini menghasilkan nilai Root Mean Squared Error (RMSE) terkecil, yaitu sebesar 738.03, dibandingkan dengan metode DES (771.39) dan SES (1367.30). Meskipun nilai MAPE pada metode DES (1.92%) sedikit lebih rendah daripada Holt-Winters (1.95%), selisih tersebut sangat tidak signifikan. Nilai RMSE yang jauh lebih rendah membuktikan bahwa Holt-Winters lebih tangguh dalam meminimalkan penalti dari prediksi yang meleset. Keunggulan ini juga sangat sejalan dengan karakteristik data konsumsi listrik yang dianalisis, di mana grafik awal dengan jelas memperlihatkan fluktuasi berbentuk gelombang yang berulang.
